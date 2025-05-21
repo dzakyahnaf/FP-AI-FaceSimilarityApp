@@ -1,0 +1,5 @@
+Flask
+deepface
+tensorflow # Atau tensorflow-cpu jika tidak punya GPU NVIDIA
+opencv-python
+gunicorn # Opsional, untuk deployment

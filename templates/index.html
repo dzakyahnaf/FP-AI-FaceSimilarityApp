@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Uji Similaritas Wajah</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 20px;
+        background-color: #f4f4f4;
+        color: #333;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 90%;
+        max-width: 700px;
+      }
+      h1 {
+        text-align: center;
+        color: #333;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      .file-input-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Pusatkan preview dan input */
+        gap: 10px;
+        border: 1px solid #ddd;
+        padding: 15px;
+        border-radius: 5px;
+      }
+      label {
+        font-weight: bold;
+      }
+      input[type="file"] {
+        border: 1px solid #ccc;
+        padding: 8px;
+        border-radius: 4px;
+      }
+      .button-predict {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s ease;
+      }
+      .button-predict:hover {
+        background-color: #0056b3;
+      }
+      .image-preview {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 10px;
+        border: 1px solid #eee;
+        padding: 5px;
+        display: none; /* Sembunyikan awalnya */
+      }
+      .result-section {
+        margin-top: 25px;
+        padding: 15px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        background-color: #e9ecef;
+      }
+      .result-section h2 {
+        margin-top: 0;
+        color: #17a2b8;
+      }
+      .error {
+        color: red;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        padding: 10px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+      .image-display-container {
+        display: flex;
+        justify-content: space-around; /* Jarak antar gambar */
+        align-items: flex-start; /* Sejajarkan atas */
+        margin-bottom: 20px;
+        flex-wrap: wrap; /* Agar responsif jika layar kecil */
+      }
+      .image-item {
+        text-align: center;
+        margin: 10px;
+      }
+      .image-item img {
+        max-width: 250px; /* Ukuran gambar yang ditampilkan setelah submit */
+        max-height: 250px;
+        border: 2px solid #007bff;
+        border-radius: 4px;
+      }
+      .loader {
+        border: 5px solid #f3f3f3; /* Light grey */
+        border-top: 5px solid #3498db; /* Blue */
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 20px auto;
+        display: none; /* Sembunyikan awalnya */
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Uji Similaritas Dua Gambar Wajah</h1>
+
+      {% if error_message %}
+      <p class="error">{{ error_message }}</p>
+      {% endif %}
+
+      <form method="POST" enctype="multipart/form-data" id="similarityForm">
+        <div class="file-input-group">
+          <label for="image1">Load Image 1:</label>
+          <input
+            type="file"
+            name="image1"
+            id="image1"
+            accept="image/png, image/jpeg, image/jpg"
+            required
+          />
+          <img
+            id="preview1"
+            class="image-preview"
+            src="#"
+            alt="Preview Image 1"
+          />
+        </div>
+
+        <div class="file-input-group">
+          <label for="image2">Load Image 2:</label>
+          <input
+            type="file"
+            name="image2"
+            id="image2"
+            accept="image/png, image/jpeg, image/jpg"
+            required
+          />
+          <img
+            id="preview2"
+            class="image-preview"
+            src="#"
+            alt="Preview Image 2"
+          />
+        </div>
+
+        <button type="submit" class="button-predict">Predict</button>
+      </form>
+
+      <div id="loader" class="loader"></div>
+
+      {% if result %}
+      <div class="result-section">
+        <h2>Hasil Prediksi:</h2>
+        {% if img1_path_display and img2_path_display %}
+        <div class="image-display-container">
+          <div class="image-item">
+            <p>Gambar 1:</p>
+            <img
+              src="{{ url_for('uploaded_file', filename=img1_path_display) }}"
+              alt="Uploaded Image 1"
+            />
+          </div>
+          <div class="image-item">
+            <p>Gambar 2:</p>
+            <img
+              src="{{ url_for('uploaded_file', filename=img2_path_display) }}"
+              alt="Uploaded Image 2"
+            />
+          </div>
+        </div>
+        {% endif %}
+
+        <p>
+          <strong>Verifikasi Berhasil (Sama Orang?):</strong>
+          {% if result.verified %}
+          <span style="color: green; font-weight: bold">YA</span>
+          {% else %}
+          <span style="color: red; font-weight: bold">TIDAK</span>
+          {% endif %}
+        </p>
+        <p>
+          <strong>Jarak (Distance):</strong> {{ "%.4f"|format(result.distance)
+          }}
+        </p>
+        <p>
+          <strong>Ambang Batas (Threshold):</strong> {{
+          "%.2f"|format(result.threshold) }}
+        </p>
+        <p><strong>Model yang Digunakan:</strong> {{ result.model }}</p>
+        <p><strong>Backend Detektor:</strong> {{ result.detector_backend }}</p>
+        <p>
+          <strong>Metrik Similaritas:</strong> {{ result.similarity_metric }}
+        </p>
+        <p>
+          <em
+            >Catatan: Jarak yang lebih kecil dari ambang batas menunjukkan
+            gambar berasal dari orang yang sama.</em
+          >
+        </p>
+      </div>
+      {% endif %}
+    </div>
+
+    <script>
+      function setupPreview(inputId, previewId) {
+        const inputElement = document.getElementById(inputId);
+        const previewElement = document.getElementById(previewId);
+
+        inputElement.addEventListener("change", function (event) {
+          if (event.target.files && event.target.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              previewElement.src = e.target.result;
+              previewElement.style.display = "block";
+            };
+            reader.readAsDataURL(event.target.files[0]);
+          } else {
+            previewElement.src = "#";
+            previewElement.style.display = "none";
+          }
+        });
+      }
+
+      setupPreview("image1", "preview1");
+      setupPreview("image2", "preview2");
+
+      // Tampilkan loader saat form disubmit
+      document
+        .getElementById("similarityForm")
+        .addEventListener("submit", function () {
+          // Pastikan kedua file dipilih sebelum menampilkan loader
+          const file1 = document.getElementById("image1").files.length;
+          const file2 = document.getElementById("image2").files.length;
+          if (file1 > 0 && file2 > 0) {
+            document.getElementById("loader").style.display = "block";
+          }
+        });
+    </script>
+  </body>
+</html>
